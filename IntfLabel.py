@@ -147,7 +147,7 @@ def make_desc_dict(cdp_dict, pc_dict, fex_dict):
   #Copy CDP into merged dictionary as a starting point
   merge = cdp_dict
   for pc, plist in pc_dict.iteritems():
-    if merge.has_key(plist[0]):
+    if (len(plist) > 0 and merge.has_key(plist[0])):
       merge[pc] = (merge[plist[0]], None)
   for num, portlist in fex_dict.iteritems():
     for port in portlist:
