@@ -10,6 +10,7 @@
 #   https://github.com/datacenter/nexus7000/blob/master/cdp_description.py
 #
 
+from cisco import *
 import xml.etree.cElementTree as ET
 
 
