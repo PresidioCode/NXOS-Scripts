@@ -17,7 +17,6 @@ def short_name(str):
   ''' 
   This function shortens the interface name for easier reading 
   '''
-
   if 'TenGigabitEthernet' in str:
     return str.replace('GigabitEthernet', 'T')
   elif 'GigabitEthernet' in str:
@@ -25,11 +24,31 @@ def short_name(str):
   elif 'FastEthernet' in str:
     return str.replace('FastEthernet', 'F')
   elif 'Ethernet' in str: 
-    return str.replace('Ethernet', 'Eth')
+    return str.replace('Ethernet', 'e')
+  elif 'Eth' in str: 
+    return str.replace('Eth', 'e')
   elif 'port-channel' in str:
     return str.replace('port-channel', 'Po')
   else:
     return str
+
+
+def ncli(command, xml=False):
+  '''
+  This function gets the cli output for a supplied command.  This function 
+  accounts for the difference between 7K and 5K outputs.  7Ks return a 
+  string from the cli() command, while the 5K returns a tuple and we have 
+  to extract the second element to get the string.
+  '''
+  if xml:
+    raw = cli(command + ' | xml | exclude "]]>]]>"')
+  else:
+    raw = cli(command)
+  #5Ks return cli() as tuple, so extract string if type is a tuple
+  if type(raw) == tuple:
+    return raw[1]
+  else:
+    return raw
 
 
 def get_element(command):
@@ -38,12 +57,8 @@ def get_element(command):
   ElementTree object.  It also returns the base key, so we only need
   to type the unique portion of each key when extracting data.
   '''
-
   #Get raw XML output from command
-  raw = cli(command + ' | xml | exclude "]]>]]>"')
-  #5Ks return cli() as tuple, so extract string if type is a tuple
-  if type(raw) == tuple:
-    raw = raw[1]
+  raw = ncli(command, xml=True)
   #Parse raw data into an element tree  
   tree = ET.ElementTree(ET.fromstring(raw))
   root = tree.getroot()
@@ -101,14 +116,25 @@ def make_fex_dict():
   key in this dictionary is the FEX number, and the value is a list of
   interfaces that are connected to the FEX.
   '''
+  #Verify platform has FEX enabled before trying to build this dictionary
+  fex_enabled = False
+  platform = ncli('show version | i Nexus')
+    #5Ks return cli() as tuple, so extract string if type is a tuple
+  if 'Nexus 7' in platform:
+    if "enable" in ncli('show feature-set | i fex'):
+      fex_enabled = True
+  elif 'Nexus 5' in platform:
+    if "enable" in ncli('show feature | i fex'):
+      fex_enabled = True
   fex_dict={}
-  data, fex_base = get_element('show fex detail')
-  for fex in data.iter(fex_base + 'ROW_fex_info'):
-    fex_id = fex.find(fex_base + 'chas_id').text
-    if fex_id not in fex_dict:
-      fex_dict[fex_id] = []
-    for intf in fex.iter(fex_base + 'ROW_fbr_state'):
-      fex_dict[fex_id].append(intf.find(fex_base + 'fbr_index').text)
+  if fex_enabled:    
+    data, fex_base = get_element('show fex detail')
+    for fex in data.iter(fex_base + 'ROW_fex_info'):
+      fex_id = fex.find(fex_base + 'chas_id').text
+      if fex_id not in fex_dict:
+        fex_dict[fex_id] = []
+      for intf in fex.iter(fex_base + 'ROW_fbr_state'):
+        fex_dict[fex_id].append(intf.find(fex_base + 'fbr_index').text)
   return fex_dict
 
 
@@ -145,7 +171,8 @@ def write_desc(int_dict):
   print "This will add the following commands to the configuration: "
   for line in command_list:
     print "conf ; " + line
-  response = raw_input("Continue? (Y/N) ")
+  print ("Continue? (y/n) ")
+  response = raw_input()
   if (response.lower() == "yes" or response.lower() == "y"):
     for line in command_list:
       cli("conf ; " + line)
