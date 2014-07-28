@@ -19,7 +19,7 @@ def short_name(str):
   This function shortens the interface name for easier reading 
   '''
   if 'TenGigabitEthernet' in str:
-    return str.replace('GigabitEthernet', 'T')
+    return str.replace('TenGigabitEthernet', 'T')
   elif 'GigabitEthernet' in str:
     return str.replace('GigabitEthernet', 'G') 
   elif 'FastEthernet' in str:
