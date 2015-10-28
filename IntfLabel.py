@@ -172,8 +172,10 @@ def write_desc(int_dict):
   print "This will add the following commands to the configuration: "
   for line in command_list:
     print "conf ; " + line
-  print ("Continue? (y/n) ")
-  response = raw_input()
+  ## Prompting the user had to be removed, as this is broken in the current
+  ## NXOS python.
+  # print ("Continue? (y/n) ")
+  response = "y"
   if (response.lower() == "yes" or response.lower() == "y"):
     for line in command_list:
       cli("conf ; " + line)
